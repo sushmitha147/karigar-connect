@@ -14,12 +14,9 @@ import {
 } from "lucide-react";
 import prisma from "@/lib/prisma";
 
-export const dynamic = "force-dynamic";
-
-interface StoryPageProps {
-  params: {
-    id: string;
-  };
+export async function generateStaticParams() {
+  const products = await prisma.product.findMany({ select: { id: true } });
+  return products.map((p) => ({ id: p.id }));
 }
 
 export default async function StoryPage({ params }: StoryPageProps) {
