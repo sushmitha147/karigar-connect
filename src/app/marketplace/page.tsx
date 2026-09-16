@@ -10,6 +10,7 @@ import {
   Layers,
   ShoppingBag,
 } from "lucide-react";
+import { StateFilter } from "@/components/marketplace/StateFilter";
 import prisma from "@/lib/prisma";
 
 export const dynamic = "force-dynamic";
@@ -124,21 +125,7 @@ export default async function MarketplacePage({ searchParams }: MarketplacePageP
           </form>
 
           <div className="flex items-center gap-2">
-            <select
-              value={selectedState}
-              onChange={(e) => {
-                const url = new URL(window.location.href);
-                url.searchParams.set("state", e.target.value);
-                window.location.href = url.toString();
-              }}
-              className="bg-white border border-[#E5DCCD] rounded-xl px-3 py-2.5 text-xs font-semibold text-[#243B53] focus:outline-none"
-            >
-              {states.map((s) => (
-                <option key={s} value={s}>
-                  State: {s}
-                </option>
-              ))}
-            </select>
+            <StateFilter selectedState={selectedState} states={states} />
 
             <Link
               href={`/marketplace?category=${selectedCategory}&state=${selectedState}&gi=${
