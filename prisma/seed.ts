@@ -6,6 +6,14 @@ const prisma = new PrismaClient();
 async function main() {
   console.log("🌱 Starting Karigar Connect database seed...");
 
+  // Clear demo data for idempotent seeds
+  await prisma.notification.deleteMany({});
+  await prisma.quote.deleteMany({});
+  await prisma.rfq.deleteMany({});
+  await prisma.order.deleteMany({});
+  await prisma.review.deleteMany({});
+  await prisma.product.deleteMany({});
+
   const passwordHash = await bcrypt.hash("Seller@123", 10);
   const buyerPasswordHash = await bcrypt.hash("Buyer@123", 10);
   const adminPasswordHash = await bcrypt.hash("Admin@123", 10);
