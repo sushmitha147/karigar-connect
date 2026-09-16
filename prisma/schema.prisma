@@ -1,0 +1,177 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id            String    @id @default(cuid())
+  email         String?   @unique
+  mobile        String    @unique
+  passwordHash  String
+  name          String
+  role          String    @default("SELLER") // "SELLER", "BUYER", "ADMIN"
+  language      String    @default("en")     // "en", "hi", "te", "ta"
+  avatarUrl     String?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  sellerProfile SellerProfile?
+  buyerProfile  BuyerProfile?
+  notifications Notification[]
+  orders        Order[]        @relation("BuyerOrders")
+  reviews       Review[]
+}
+
+model SellerProfile {
+  id                String   @id @default(cuid())
+  userId            String   @unique
+  user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  shopName          String
+  craftType         String   // e.g., "Pochampally Ikat", "Etikoppaka Lacquer", "Blue Pottery"
+  category          String   // "Handloom", "Pottery", "Woodcraft", "Metalcraft", "Leathercraft", "Art & Painting"
+  state             String
+  district          String
+  experienceYears   Int      @default(0)
+  capacityPerMonth  Int      @default(50)
+  gstin             String?
+  udyamNo           String?
+  panNo             String?
+  isVerified        Boolean  @default(false)
+  bio               String?
+  bannerImage       String?
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  products          Product[]
+  quotes            Quote[]
+  orders            Order[]  @relation("SellerOrders")
+}
+
+model BuyerProfile {
+  id          String   @id @default(cuid())
+  userId      String   @unique
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  companyName String
+  buyerType   String   // "Retailer", "Wholesaler", "Boutique", "Exporter", "Corporate", "Govt"
+  gstin       String?
+  city        String?
+  state       String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  rfqs        Rfq[]
+}
+
+model Product {
+  id               String   @id @default(cuid())
+  sellerId         String
+  seller           SellerProfile @relation(fields: [sellerId], references: [id], onDelete: Cascade)
+  title            String
+  shortDesc        String
+  longDesc         String
+  category         String   // "Handloom", "Pottery", "Woodcraft", "Metalcraft", "Leathercraft", "Art & Painting"
+  craftType        String
+  price            Float
+  moq              Int      @default(5)
+  stock            Int      @default(25)
+  images           String   // JSON array string of image URLs
+  material         String?
+  dimensions       String?
+  weight           String?
+  color            String?
+  origin           String?
+  careInstructions String?
+  isHandmade       Boolean  @default(true)
+  isGiTagged       Boolean  @default(false)
+  isFlagged        Boolean  @default(false)
+  keywords         String?  // comma-separated or JSON
+  translations     String?  // JSON string containing { en: {...}, hi: {...}, te: {...}, ta: {...} }
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  rfqs             Rfq[]
+  orders           Order[]
+  reviews          Review[]
+}
+
+model Rfq {
+  id                  String   @id @default(cuid())
+  buyerId             String
+  buyer               BuyerProfile @relation(fields: [buyerId], references: [id], onDelete: Cascade)
+  productId           String
+  product             Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  quantity            Int
+  deliveryLocation    String
+  targetDate          DateTime
+  targetBudget        Float?
+  customizationNotes  String?
+  status              String   @default("PENDING") // "PENDING", "QUOTED", "ACCEPTED", "REJECTED", "COUNTERED"
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+
+  quotes              Quote[]
+}
+
+model Quote {
+  id                     String    @id @default(cuid())
+  rfqId                  String
+  rfq                    Rfq       @relation(fields: [rfqId], references: [id], onDelete: Cascade)
+  sellerId               String
+  seller                 SellerProfile @relation(fields: [sellerId], references: [id], onDelete: Cascade)
+  unitPrice              Float
+  shippingCost           Float     @default(0)
+  totalAmount            Float
+  estimatedDeliveryDays  Int
+  terms                  String?
+  status                 String    @default("PENDING") // "PENDING", "ACCEPTED", "REJECTED", "COUNTERED"
+  counterPrice           Float?
+  counterNotes           String?
+  createdAt              DateTime  @default(now())
+  updatedAt              DateTime  @updatedAt
+}
+
+model Order {
+  id              String   @id @default(cuid())
+  orderNumber     String   @unique
+  buyerId         String
+  buyer           User     @relation("BuyerOrders", fields: [buyerId], references: [id])
+  sellerId        String
+  seller          SellerProfile @relation("SellerOrders", fields: [sellerId], references: [id])
+  productId       String
+  product         Product  @relation(fields: [productId], references: [id])
+  quantity        Int
+  totalAmount     Float
+  paymentMethod   String   // "RAZORPAY", "UPI", "COD"
+  paymentStatus   String   @default("PAID") // "PAID", "PENDING", "FAILED"
+  orderStatus     String   @default("PROCESSING") // "PROCESSING", "SHIPPED", "DELIVERED", "CANCELLED"
+  shippingAddress String
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+}
+
+model Notification {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  title     String
+  message   String
+  type      String   @default("INFO") // "RFQ", "ORDER", "SYSTEM", "SCHEME", "VERIFICATION"
+  read      Boolean  @default(false)
+  link      String?
+  createdAt DateTime @default(now())
+}
+
+model Review {
+  id        String   @id @default(cuid())
+  productId String
+  product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  buyerId   String
+  buyer     User     @relation(fields: [buyerId], references: [id], onDelete: Cascade)
+  rating    Int      @default(5)
+  comment   String
+  createdAt DateTime @default(now())
+}
